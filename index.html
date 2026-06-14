@@ -1,0 +1,867 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>FB Tools — доступ · Rename · Kill · Billing</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  :root { color-scheme: light dark; }
+  body { font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif; max-width: 820px; margin: 40px auto; padding: 0 20px; line-height: 1.55; }
+  h1 { margin: 0 0 6px; font-size: 25px; }
+  .sub { color: #666; margin-bottom: 24px; }
+  .bm-wrap { background: #f4f6fa; border: 1px dashed #b9c2d0; border-radius: 10px; padding: 22px; text-align: center; margin: 18px 0; }
+  .bm-link { display: inline-block; background: #1877f2; color: #fff !important; text-decoration: none; padding: 12px 22px; border-radius: 8px; font-weight: 600; font-size: 16px; cursor: grab; user-select: none; }
+  .bm-link:active { cursor: grabbing; }
+  ol li, ul li { margin: 6px 0; }
+  code { background: #eef1f5; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+  details { margin-top: 26px; }
+  summary { cursor: pointer; font-weight: 600; margin-bottom: 8px; }
+  pre { background: #0d1117; color: #c9d1d9; padding: 14px; border-radius: 8px; overflow: auto; font-size: 11px; line-height: 1.45; max-height: 360px; }
+  .warn { background: #fff7e6; border-left: 4px solid #f2a93b; padding: 10px 14px; border-radius: 4px; font-size: 14px; margin: 16px 0; }
+  .danger { background: #fdecea; border-left: 4px solid #c0392b; padding: 10px 14px; border-radius: 4px; font-size: 14px; margin: 16px 0; }
+  @media (prefers-color-scheme: dark) {
+    body { background: #15181c; color: #e6e6e6; }
+    .bm-wrap { background: #1f232a; border-color: #3a414d; }
+    code { background: #262b33; }
+    .warn { background: #2b2418; border-left-color: #e0a13a; }
+    .danger { background: #2c1b18; border-left-color: #e05a4a; }
+  }
+</style>
+</head>
+<body>
+
+<h1>FB Tools</h1>
+<div class="sub">Одна закладка, четыре вкладки: <b>Доступ</b> (отправка/приём запросов), <b>Rename</b> (ID кабинетов → копировать/переименовать), <b>Kill</b> (удаление объявлений / зачистка кабинета), <b>Billing</b> (массовый адрес + привязка карт + основная карта).</div>
+
+<div class="bm-wrap">
+  <a id="bm" class="bm-link" href="javascript:void(0)" draggable="true">&#128296; FB Tools</a>
+  <div style="font-size:13px;color:#666;margin-top:10px">Перетащи на панель закладок</div>
+</div>
+
+<h3>Вкладка «Доступ»</h3>
+<ol>
+  <li><b>Отправка</b> (главный профиль): <code>business.facebook.com/.../settings/ad_accounts</code> → business_id, список ID, «Старт». На лимите 2 pending ждёт приёма и продолжает.</li>
+  <li><b>Приём</b> (профиль-владелец): <code>adsmanager.facebook.com</code> → тот же список, «Старт» — принимает по кругу.</li>
+  <li>Если режим не совпадает со страницей — закладка перекинет на нужный сайт; после загрузки нажми её ещё раз.</li>
+</ol>
+
+<h3>Вкладка «Rename»</h3>
+<ol>
+  <li><code>adsmanager.facebook.com/adsmanager/</code> → «Загрузить аккаунты».</li>
+  <li>«Копировать все / выделенные» (ID в буфер) или «Переименовать → ID».</li>
+</ol>
+
+<h3>Вкладка «Kill»</h3>
+<ol>
+  <li>Открой <code>adsmanager.facebook.com/adsmanager/</code> с выбранным кабинетом (<code>act=...</code> в URL).</li>
+  <li><b>Kill Ads</b>: выдели объявления (в URL появится <code>selected_ad_ids=...</code>) → кнопка «Kill Ads».</li>
+  <li><b>Kill Account</b>: введи номер кабинета для подтверждения → «Kill Account» (стирает все кампании/адсеты/объявления).</li>
+</ol>
+
+<h3>Вкладка «Billing»</h3>
+<ol>
+  <li>Лучше открывать с <code>business.facebook.com</code> (привязка карт открывает worker-вкладку Billing Hub — нужен тот же origin).</li>
+  <li><b>Set address</b>: список Account IDs → массово ставит адрес/валюту/таймзону (US/DE/Wilmington/19801, USD, Europe/Kiev).</li>
+  <li><b>Attach card</b>: Account IDs ↔ Cards построчно, опц. «сделать карту основной».</li>
+</ol>
+
+<div class="danger">
+  <b>Kill необратим.</b> Удалённые объекты не восстанавливаются. Kill Account запускай только на кабинете, который реально хочешь обнулить.
+</div>
+<div class="warn">
+  Приём — «чувствительное действие»: первый раз FB может попросить код из почты (прими один запрос вручную).<br>
+  Токены (Rename/Kill) и Billing работают с куками сессии на нужном поддомене. Коды: <b>190</b> — токен истёк; <b>200/10</b> — нет <code>ads_management</code>; <b>4/17</b> — rate-limit; <b>31</b> — пройди аутентификацию кабинета в UI.
+</div>
+
+<details>
+<summary>Исходник</summary>
+<pre id="srcView"></pre>
+</details>
+
+<script id="src" type="text/plain">javascript:(async()=>{try{
+const host=location.host;const isBiz=/business\.facebook\.com/.test(host);const isAds=/adsmanager\.facebook\.com/.test(host);const isAdsMgr=/adsmanager\.facebook\.com\/adsmanager\//.test(location.href);
+if(!isBiz&&!isAds){alert('Открой business.facebook.com или adsmanager.facebook.com');return}
+const H=document.documentElement.innerHTML;
+const dtsg=(H.match(/"DTSGInitialData",\[\],\{"token":"([^"]+)"/)||H.match(/"async_get_token":"([^"]+)"/)||[])[1];
+const lsd=(H.match(/\["LSD",\[\],\{"token":"([^"]+)"/)||H.match(/"lsd":\{"token":"([^"]+)"/)||[])[1];
+const user=(document.cookie.match(/c_user=(\d+)/)||[])[1];
+let biz=(location.href.match(/business_id=(\d+)/)||[])[1]||(H.match(/"business_id":"(\d+)"/)||[])[1]||'';
+const jaz=dtsg?('2'+[].reduce.call(dtsg,(s,c)=>s+c.charCodeAt(0),0)):'';
+const enc=encodeURIComponent;const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const HD={'content-type':'application/x-www-form-urlencoded','x-fb-lsd':lsd||''};
+const ROLES=['864195700451909','151821535410699','610690166001223','186595505260379'];
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const tokens=[...new Set((document.documentElement.outerHTML.match(/EAA[A-Za-z0-9_\-]{100,}/g)||[]))];
+const eaabToken=tokens.find(t=>t.startsWith('EAAB'));
+const pageT=(window.__accessToken&&/^EAA/.test(window.__accessToken))?window.__accessToken:(eaabToken||tokens[0]||'');
+const V='v25.0',GB='https://graph.facebook.com/'+V;
+const graphCall=async(T,CRED,path,o)=>{o=o||{};let u=path.indexOf('http')===0?path:GB+'/'+path;const i={method:o.method||'GET',credentials:CRED};if(o.payload){const fd=new FormData();for(const k in o.payload)fd.append(k,o.payload[k]);fd.append('access_token',T);i.method=o.method||'POST';i.body=fd}else{u+=(u.indexOf('?')>=0?'&':'?')+'access_token='+enc(T)}let r,t='';try{r=await fetch(u,i);t=await r.text()}catch(e){return{code:0,body:'fetch error: '+e.message,json:{}}}let j={};try{j=JSON.parse(t)}catch(e){}let code=r.status;if(j&&j.error)code=(j.error.code===4?4:400);return{code:code,body:t,json:j}};
+const copyText=async(text)=>{try{await navigator.clipboard.writeText(text);return true}catch(e){const ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);ta.focus();ta.select();let ok=false;try{ok=document.execCommand('copy')}catch(_){}ta.remove();return ok}};
+const send=async(acc,b)=>{const variables=JSON.stringify({input:{actor_id:user,client_mutation_id:String(Date.now())+'_'+acc,ad_account_id:acc,permitted_roles:ROLES,permitted_tasks:[],requesting_business_id:b}});const body='av='+user+'&__user='+user+'&__a=1&__comet_req=1&fb_dtsg='+enc(dtsg)+'&jazoest='+jaz+'&lsd='+enc(lsd||'')+'&fb_api_caller_class=RelayModern&fb_api_req_friendly_name=BizKitSettingsRequestAdAccountAccessMutation&variables='+enc(variables)+'&server_timestamps=true&doc_id=23962130140039997';const r=await fetch('https://business.facebook.com/api/graphql/',{method:'POST',credentials:'include',headers:HD,body});const t=await r.text();let j={};try{j=JSON.parse(t.replace(/^for \(;;\);/,''))}catch(e){}const err=j.errors&&j.errors[0];if(!err&&j.data)return{s:'ok'};if(err&&err.code===1752207)return{s:'limit'};if(err&&err.code===1752041)return{s:'dup'};return{s:'err',m:(err&&(err.summary||err.description||err.message))||t.slice(0,140)}};
+const accept=async(acc)=>{const gurl='https://adsmanager.facebook.com/ads/manager/agency_permission_requests_getter/?ad_account_id='+acc+'&ads_manager_write_regions=true';const gbody='__a=1&__user='+user+'&fb_dtsg='+enc(dtsg)+'&jazoest='+jaz+'&lsd='+enc(lsd||'')+'&dpr=1&__comet_req=58';let gt=await (await fetch(gurl,{method:'POST',credentials:'include',headers:HD,body:gbody})).text();let phtml='';try{phtml=JSON.parse(gt.replace(/^for \(;;\);/,'')).payload.__html||'';}catch(e){phtml=gt;}const dm=phtml.match(/accept_reject_dialog\/?\?ad_market_id=(\d+)&(?:amp;)?agency_id=(\d+)/);if(!dm)return{s:'none'};const market=dm[1],agency=dm[2];let am=null;for(let tryi=0;tryi<2&&!am;tryi++){const durl='https://adsmanager.facebook.com/adaccount/agency/accept_reject_dialog/?ad_market_id='+market+'&agency_id='+agency+'&ads_manager_write_regions=true';let dt=await (await fetch(durl,{method:'POST',credentials:'include',headers:HD,body:gbody})).text();am=dt.match(/accept_reject[^"]*?ad_market_id=(\d+)[^"]*?agency_id=(\d+)[^"]*?operation=0[^"]*?ext=(\d+)[^"]*?hash=([A-Za-z0-9_\-]+)/);if(!am)await sleep(800)}if(!am)return{s:'err',m:'нет hash/ext в диалоге'};const ext=am[3],hash=am[4];const aurl='https://adsmanager.facebook.com/adaccount/agency/request/accept_reject/?ads_manager_write_regions=true';const abody='ad_market_id='+market+'&agency_id='+agency+'&operation=0&ext='+ext+'&hash='+enc(hash)+'&__aaid='+acc+'&__user='+user+'&__a=1&fb_dtsg='+enc(dtsg)+'&jazoest='+jaz+'&lsd='+enc(lsd||'')+'&__comet_req=58&dpr=1';let at=await (await fetch(aurl,{method:'POST',credentials:'include',headers:HD,body:abody})).text();if(/"payload"/.test(at)&&!/"error"\s*:\s*[1-9]/.test(at))return{s:'ok'};return{s:'err',m:at.slice(0,140)}};
+const rnState={accounts:[],T:'',CRED:'include'};
+const rnCall=(path,o)=>graphCall(rnState.T,rnState.CRED,path,o);
+let billingInited=false;
+function openBilling(mount){
+function tryRequire(name) {
+try { return require(name); } catch (e) { return null; }
+}
+function readDtsg() {
+var d = tryRequire('DTSGInitData') || tryRequire('DTSGInitialData');
+if (d && d.token) return d.token;
+var el = document.querySelector('input[name="fb_dtsg"]');
+if (el && el.value) return el.value;
+var html = document.documentElement.innerHTML;
+var m = html.match(/"DTSGInitialData",\[\],\{"token":"([^"]+)"/);
+if (m) return m[1];
+m = html.match(/name="fb_dtsg" value="([^"]+)"/);
+return m ? m[1] : null;
+}
+function readLsd() {
+var l = tryRequire('LSD');
+if (l && l.token) return l.token;
+var html = document.documentElement.innerHTML;
+var m = html.match(/"LSD",\[\],\{"token":"([^"]+)"/);
+return m ? m[1] : null;
+}
+function readSite() { return tryRequire('SiteData') || {}; }
+function readUserId() {
+var u = tryRequire('CurrentUserInitialData');
+if (u && u.USER_ID) return u.USER_ID;
+var m = document.cookie.match(/c_user=(\d+)/);
+return m ? m[1] : null;
+}
+function readUserName() {
+var u = tryRequire('CurrentUserInitialData');
+if (u && u.NAME) return u.NAME;
+if (u && u.SHORT_NAME) return u.SHORT_NAME;
+return '';
+}
+function calcJazoest(dtsg) {
+var s = 0;
+for (var i = 0; i < dtsg.length; i++) s += dtsg.charCodeAt(i);
+return '2' + s;
+}
+var DTSG      = readDtsg();
+var LSD       = readLsd();
+var SITE      = readSite();
+var USER_ID   = readUserId();
+var USER_NAME = readUserName();
+if (!DTSG || !USER_ID) {
+alert('Не нашёл fb_dtsg / __user.\n' +
+'fb_dtsg = ' + (DTSG ? 'OK' : 'NO') + '\n' +
+'__user  = ' + (USER_ID ? 'OK' : 'NO'));
+return;
+}
+var ADDRESS = {
+country_code: 'US', state: 'DE',
+city: 'Wilmington', zip: '19801',
+street1: '', street2: ''
+};
+var CURRENCY = 'USD';
+var TIMEZONE = 'Europe/Kiev';
+var DOC_UPDATE_ACCOUNT      = '33020210320959428';
+var DOC_PAYMENT_METHODS_LIST = '26414517794887295';
+var DOC_MAKE_PRIMARY        = '24268156329457050';
+var host=document.createElement('iframe');host.id='fb-bm-host';host.style.cssText='width:100%;height:700px;border:0;display:block;background:#f0f2f5';mount.appendChild(host);
+var idoc = host.contentDocument;
+idoc.open();
+idoc.write([
+'<!DOCTYPE html><html><head><meta charset="utf-8"><title>FB BM</title>',
+'<style>',
+'html,body{margin:0;padding:0;background:#f0f2f5}',
+'*{box-sizing:border-box;font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;font-size:13px}',
+'.panel{background:#f0f2f5;border:1px solid #999;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.25);overflow:hidden;display:flex;flex-direction:column;max-height:92vh}',
+'.hdr{background:#1c1e21;color:#fff;padding:8px 12px;display:flex;align-items:center;gap:8px;user-select:none}',
+'.hdr .title{flex:1;font-weight:600;font-size:13px}',
+'.hdr .meta{font-weight:normal;color:#8b949e;font-size:11px;margin-left:6px}',
+'.hdr button{background:transparent;border:0;color:#fff;cursor:pointer;font-size:14px;padding:2px 8px;border-radius:4px}',
+'.hdr button:hover{background:rgba(255,255,255,.15)}',
+'.body{padding:12px;overflow:auto;flex:1}',
+'.tabs{display:flex;gap:4px;margin-bottom:10px}',
+'.tabs button{flex:1;background:#fff;border:1px solid #dadde1;padding:8px;cursor:pointer;border-radius:6px 6px 0 0;font-weight:600;color:#1c1e21}',
+'.tabs button.active{background:#1877f2;color:#fff;border-color:#1877f2}',
+'.tab{display:none;background:#fff;border:1px solid #dadde1;border-radius:0 6px 6px 6px;padding:12px}',
+'.tab.active{display:block}',
+'.addr{background:#f0f2f5;border-radius:6px;padding:8px 10px;margin:0 0 10px;font-family:Consolas,Menlo,monospace;font-size:12px;line-height:1.6;color:#1c1e21}',
+'label{display:block;font-weight:600;margin:8px 0 4px;font-size:12px;color:#1c1e21}',
+'textarea,input[type=text]{width:100%;font-family:Consolas,Menlo,monospace;font-size:12px;border:1px solid #dadde1;border-radius:6px;padding:6px 8px;resize:vertical;background:#fff;color:#1c1e21}',
+'textarea{height:140px}',
+'.cols{display:flex;gap:8px}',
+'.cols>div{flex:1}',
+'button.run{background:#1877f2;color:#fff;border:0;padding:8px 16px;border-radius:6px;font-weight:600;cursor:pointer;margin-top:10px}',
+'button.run:disabled{background:#999;cursor:default}',
+'button.stop{background:#e41e3f;color:#fff;border:0;padding:8px 16px;border-radius:6px;font-weight:600;cursor:pointer;margin-top:10px;margin-left:6px}',
+'.log{background:#0d1117;color:#c9d1d9;border-radius:6px;padding:10px;margin-top:12px;height:200px;overflow:auto;font-family:Consolas,Menlo,monospace;font-size:11px;white-space:pre-wrap;line-height:1.5}',
+'.ok{color:#3fb950}.err{color:#f85149}.muted{color:#8b949e}.warn{color:#d29922}',
+'</style>',
+'</head><body>',
+'<div class="panel">',
+'  <div class="hdr" id="hdr">',
+'    <span class="title">FB Billing automation<span class="meta">actor=' + USER_ID + '</span></span>',
+'    <button id="btn-min" title="Свернуть">_</button>',
+'    <button id="btn-close" title="Закрыть">×</button>',
+'  </div>',
+'  <div class="body" id="body">',
+'    <div class="tabs">',
+'      <button id="t-addr" class="active">1. Set address</button>',
+'      <button id="t-card">2. Attach card</button>',
+'    </div>',
+'    <div id="tab-addr" class="tab active">',
+'      <div class="addr"><b>Адрес:</b><br>country=US, state=DE<br>city=Wilmington, zip=19801<br>currency=USD, timezone=Europe/Kiev</div>',
+'      <label>Account IDs (по строке, с act_ или без)</label>',
+'      <textarea id="addr-accs" placeholder="1133545425604191"></textarea>',
+'      <button id="addr-run" class="run">Run address</button>',
+'      <button id="addr-stop" class="stop" style="display:none">Stop</button>',
+'    </div>',
+'    <div id="tab-card" class="tab">',
+'      <label>Name on card (одно на все)</label>',
+'      <input type="text" id="card-name" placeholder="John Smith" value="' + (USER_NAME || '').replace(/"/g, '&quot;') + '">',
+'      <label style="font-weight:normal;margin-top:8px;display:flex;align-items:center;gap:6px"><input type="checkbox" id="card-currmonth" style="width:auto"> Подставлять текущий месяц/год (формат: PAN-CVC) &nbsp; Срок (лет): <input type="text" id="card-yearsadd" value="2" style="width:50px;text-align:center"></label>',
+'      <label style="font-weight:normal;margin-top:4px;display:flex;align-items:center;gap:6px"><input type="checkbox" id="card-setdefault" style="width:auto"> Сделать новую карту основной (если есть "Set as default")</label>',
+'      <div class="cols">',
+'        <div><label>Account IDs</label><textarea id="card-accs" placeholder="1133545425604191"></textarea></div>',
+'        <div><label>Cards (по строке)</label><textarea id="card-cards" placeholder="PAN-MM/YY-CVC&#10;или с галкой:&#10;PAN-CVC"></textarea></div>',
+'      </div>',
+'      <div class="muted" style="font-size:11px;margin-top:6px">Строка N в Accounts ↔ строка N в Cards. Worker откроется один раз.</div>',
+'      <button id="card-run" class="run">Run cards</button>',
+'      <button id="card-stop" class="stop" style="display:none">Stop</button>',
+'    </div>',
+'    <div class="log" id="log">Готов.</div>',
+'  </div>',
+'</div>',
+'</body></html>'
+].join(''));
+idoc.close();
+var $ = function (id) { return idoc.getElementById(id); };
+var $log = $('log');
+function log(msg, cls) {
+var span = idoc.createElement('span');
+if (cls) span.className = cls;
+span.textContent = msg + '\n';
+$log.appendChild(span);
+$log.scrollTop = $log.scrollHeight;
+}
+$('btn-close').onclick = function () { cardStopped = true; addrStopped = true; if (worker && !worker.closed) { try { worker.close(); } catch (e) {} } host.remove(); billingInited = false; };
+$('btn-min').onclick = function () {
+var b = $('body');
+b.style.display = (b.style.display === 'none') ? '' : 'none';
+};
+$('t-addr').onclick = function () { $('t-addr').classList.add('active'); $('t-card').classList.remove('active'); $('tab-addr').classList.add('active'); $('tab-card').classList.remove('active'); };
+$('t-card').onclick = function () { $('t-card').classList.add('active'); $('t-addr').classList.remove('active'); $('tab-card').classList.add('active'); $('tab-addr').classList.remove('active'); };
+function buildAddressBody(accId) {
+var variables = {
+input: {
+billable_account_payment_legacy_account_id: accId,
+currency: CURRENCY, device_country: null,
+tax: {
+business_address: {
+city: ADDRESS.city, country_code: ADDRESS.country_code,
+state: ADDRESS.state, street1: ADDRESS.street1,
+street2: ADDRESS.street2, zip: ADDRESS.zip
+},
+business_name: '', is_personal_use: false,
+second_tax_id: '', tax_id: '', tax_registration_status: ''
+},
+timezone: TIMEZONE,
+upl_logging_data: {
+billing_notification_id: '', context: 'billingaccountinfo',
+entry_point: 'ads_manager', external_flow_id: 'bm_' + Date.now(),
+target_name: 'BillingAccountInformationUtilsUpdateAccountMutation',
+user_session_id: 'bm_' + Date.now(),
+wizard_config_name: 'BUSINESS_INFO_SUB',
+wizard_name: 'COLLECT_ACCOUNT_INFO',
+wizard_screen_name: 'account_information_state_display',
+wizard_session_id: 'bm_wizard_' + Date.now()
+},
+actor_id: USER_ID,
+client_mutation_id: String(Date.now() % 100000)
+},
+includeCreateNewFromOldFragment: false
+};
+var p = {
+av: USER_ID, __user: USER_ID, __a: '1', __req: '1',
+__hs: SITE.hsi || '', dpr: '1', __rev: SITE.client_revision || '',
+__s: '', __hsi: '', __dyn: '', __csr: '', __ccg: 'GOOD',
+lsd: LSD || '', jazoest: calcJazoest(DTSG),
+__spin_r: SITE.__spin_r || '',
+__spin_b: SITE.__spin_b || 'trunk',
+__spin_t: SITE.__spin_t || String(Math.floor(Date.now() / 1000)),
+fb_dtsg: DTSG, fb_api_caller_class: 'RelayModern',
+fb_api_req_friendly_name: 'BillingAccountInformationUtilsUpdateAccountMutation',
+variables: JSON.stringify(variables),
+server_timestamps: 'true', doc_id: DOC_UPDATE_ACCOUNT
+};
+return new URLSearchParams(p).toString();
+}
+function postAddress(accId) {
+var body = buildAddressBody(accId);
+function send(url) {
+return fetch(url, {
+method: 'POST',
+headers: { 'content-type': 'application/x-www-form-urlencoded' },
+body: body, credentials: 'include', mode: 'cors'
+}).then(function (r) {
+return r.text().then(function (t) { return { status: r.status, text: t, url: url }; });
+});
+}
+return send(location.origin + '/api/graphql/').then(function (res) {
+if (res.status === 200 && res.text && res.text.indexOf('"errors"') === -1) return res;
+return send('https://business.facebook.com/api/graphql/');
+});
+}
+async function graphqlPost(friendlyName, docId, variables) {
+var p = {
+av: USER_ID, __user: USER_ID, __a: '1', __req: '1',
+__hs: SITE.hsi || '', dpr: '1', __rev: SITE.client_revision || '',
+__s: '', __hsi: '', __dyn: '', __csr: '', __ccg: 'GOOD',
+lsd: LSD || '', jazoest: calcJazoest(DTSG),
+__spin_r: SITE.__spin_r || '',
+__spin_b: SITE.__spin_b || 'trunk',
+__spin_t: SITE.__spin_t || String(Math.floor(Date.now() / 1000)),
+fb_dtsg: DTSG,
+fb_api_caller_class: 'RelayModern',
+fb_api_req_friendly_name: friendlyName,
+variables: JSON.stringify(variables),
+server_timestamps: 'true',
+doc_id: docId
+};
+var body = new URLSearchParams(p).toString();
+function send(url) {
+return fetch(url, {
+method: 'POST',
+headers: { 'content-type': 'application/x-www-form-urlencoded' },
+body: body, credentials: 'include', mode: 'cors'
+}).then(function (r) {
+return r.text().then(function (t) { return { status: r.status, text: t }; });
+});
+}
+var res = await send(location.origin + '/api/graphql/');
+if (res.status !== 200 || (res.text && res.text.indexOf('"errors"') !== -1)) {
+res = await send('https://business.facebook.com/api/graphql/');
+}
+try { return JSON.parse(res.text); } catch (e) { return { _raw: res.text, _status: res.status }; }
+}
+async function ensurePrimary(accId, last4) {
+var list = await graphqlPost('BillingHubPaymentSettingsPaymentMethodsListQuery', DOC_PAYMENT_METHODS_LIST, {
+paymentAccountID: accId,
+assetID: accId
+});
+var methods = (((list || {}).data || {}).billable_account_by_asset_id || {}).billing_payment_account;
+methods = methods ? (methods.billing_payment_methods_allowlist_customized || []) : [];
+var ours = null;
+for (var i = 0; i < methods.length; i++) {
+var m = methods[i];
+var c = m && m.credential;
+if (c && c.credential_type === 'CREDIT_CARD' && c.last_four_digits === last4) {
+ours = m; break;
+}
+}
+if (!ours) throw new Error('card ****' + last4 + ' не найдена в списке после привязки');
+if (ours.is_primary) return 'already';
+var credId = ours.credential.credential_id;
+var primary = await graphqlPost('BillingMakePrimaryStateMutation', DOC_MAKE_PRIMARY, {
+input: {
+billable_account_payment_legacy_account_id: accId,
+primary_funding_id: credId,
+upl_logging_data: {
+billing_notification_id: '',
+context: 'billingaddpm',
+credential_id: credId,
+entry_point: 'ads_manager',
+external_flow_id: 'bm_' + Date.now(),
+target_name: 'BillingMakePrimaryStateMutation',
+user_session_id: 'bm_' + Date.now(),
+wizard_config_name: 'MAKE_PRIMARY',
+wizard_name: 'MAKE_PRIMARY',
+wizard_screen_name: 'make_primary_display_state_display',
+wizard_session_id: 'bm_wizard_' + Date.now()
+},
+actor_id: USER_ID,
+client_mutation_id: String(Date.now() % 100000)
+}
+});
+if (primary && primary.errors && primary.errors[0]) {
+var er = primary.errors[0];
+throw new Error('make primary: ' + (er.summary || er.description || er.message || JSON.stringify(er).slice(0, 200)));
+}
+return 'made';
+}
+var addrStopped = false;
+$('addr-stop').onclick = function () {
+addrStopped = true;
+$('addr-stop').style.display = 'none';
+$('addr-run').disabled = false;
+log('--- stop requested ---', 'muted');
+};
+$('addr-run').onclick = async function () {
+var raw = $('addr-accs').value.trim();
+if (!raw) { log('пустой список', 'err'); return; }
+var ids = raw.split(/\s+/)
+.map(function (x) { return x.replace(/^act_/, '').trim(); })
+.filter(function (x) { return /^\d{6,}$/.test(x); });
+if (!ids.length) { log('нет валидных ID', 'err'); return; }
+$('addr-run').disabled = true;
+$('addr-stop').style.display = 'inline-block';
+addrStopped = false;
+log('--- Address: ' + ids.length + ' accounts ---', 'muted');
+var ok = 0, err = 0;
+for (var i = 0; i < ids.length; i++) {
+if (addrStopped) break;
+var id = ids[i];
+log('[' + (i + 1) + '/' + ids.length + '] ' + id + ' …');
+try {
+var res = await postAddress(id);
+var parsed = null;
+try { parsed = JSON.parse(res.text); } catch (e) {}
+if (res.status === 200 && parsed && parsed.data && !parsed.errors) {
+log('   ✓ OK', 'ok'); ok++;
+} else {
+var reason = res.status + '';
+if (parsed && parsed.errors && parsed.errors[0]) {
+reason += ' — ' + (parsed.errors[0].summary || parsed.errors[0].description || parsed.errors[0].message || JSON.stringify(parsed.errors[0]).slice(0, 200));
+} else if (res.text) {
+reason += ' — ' + res.text.slice(0, 200);
+}
+log('   ✗ ' + reason, 'err'); err++;
+}
+} catch (e) {
+log('   ✗ exception: ' + (e.message || e), 'err'); err++;
+}
+await new Promise(function (r) { setTimeout(r, 400); });
+}
+log('--- Done. OK=' + ok + ' ERR=' + err + (addrStopped ? ' (stopped)' : '') + ' ---', 'muted');
+$('addr-run').disabled = false;
+$('addr-stop').style.display = 'none';
+};
+var worker = null;
+var cardStopped = false;
+function billingUrl(accId) {
+return 'https://business.facebook.com/billing_hub/payment_settings/' +
+'?placement=ads_manager' +
+'&asset_id=' + accId +
+'&payment_account_id_from_jsmodule=' + accId +
+'&payment_account_id=' + accId +
+'&entrypoint=ads_ecosystem_navigation_ads_billing_tool_plugin' +
+'&locale=en_US' +
+'&_bm=' + Date.now();
+}
+function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+async function waitFor(predicate, timeoutMs, intervalMs) {
+timeoutMs = timeoutMs || 25000;
+intervalMs = intervalMs || 250;
+var start = Date.now();
+while (Date.now() - start < timeoutMs) {
+if (cardStopped) throw new Error('stopped');
+try {
+var el = predicate();
+if (el) return el;
+} catch (e) {}
+await sleep(intervalMs);
+}
+throw new Error('timeout: ' + (predicate.name || 'wait'));
+}
+function findByText(rootDoc, selector, text, exact) {
+var els = rootDoc.querySelectorAll(selector);
+var ttext = (text || '').toLowerCase().trim();
+for (var i = 0; i < els.length; i++) {
+var t = (els[i].textContent || '').toLowerCase().trim();
+if (exact ? t === ttext : t.indexOf(ttext) !== -1) return els[i];
+}
+return null;
+}
+function clickable(el) {
+while (el && el.tagName !== 'BUTTON' && (!el.getAttribute || el.getAttribute('role') !== 'button')) {
+el = el.parentElement;
+if (!el) break;
+}
+return el;
+}
+function setInput(input, value) {
+var setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+if (input._valueTracker) {
+try { input._valueTracker.setValue(''); } catch (e) {}
+}
+input.focus();
+setter.call(input, value);
+input.dispatchEvent(new Event('input',  { bubbles: true }));
+input.dispatchEvent(new Event('change', { bubbles: true }));
+}
+function blurInput(input) {
+if (!input) return;
+input.dispatchEvent(new Event('change', { bubbles: true }));
+input.dispatchEvent(new Event('blur',   { bubbles: true }));
+}
+function isVisible(el) {
+if (!el) return false;
+var r = el.getBoundingClientRect();
+if (r.width === 0 || r.height === 0) return false;
+var st = el.ownerDocument.defaultView.getComputedStyle(el);
+return st.visibility !== 'hidden' && st.display !== 'none';
+}
+function findByTextVisible(rootDoc, selector, text, exact) {
+var els = rootDoc.querySelectorAll(selector);
+var ttext = (text || '').toLowerCase().trim();
+for (var i = 0; i < els.length; i++) {
+var t = (els[i].textContent || '').toLowerCase().trim();
+var ok = exact ? t === ttext : t.indexOf(ttext) !== -1;
+if (ok && isVisible(els[i])) return els[i];
+}
+return null;
+}
+function findSetDefaultCheckbox(d) {
+var labels = d.querySelectorAll('label');
+for (var i = 0; i < labels.length; i++) {
+if (/set as default/i.test(labels[i].textContent || '')) {
+var cb = labels[i].querySelector('input[type="checkbox"]');
+if (cb) return cb;
+}
+}
+var anchor = findByTextVisible(d, 'span,div,label', 'Set as default');
+if (anchor) {
+var p = anchor;
+for (var j = 0; j < 5 && p; j++) {
+var cb2 = p.querySelector('input[type="checkbox"]');
+if (cb2) return cb2;
+p = p.parentElement;
+}
+}
+return null;
+}
+async function ensureWorker() {
+if (worker && !worker.closed) return worker;
+worker = window.open('about:blank', 'fb_card_worker', 'width=1280,height=900');
+if (!worker) throw new Error('worker popup blocked');
+return worker;
+}
+function isCrossOrigin() {
+try {
+var _ = worker.location.href; void _;
+return false;
+} catch (e) {
+return /cross.?origin|security/i.test(e.message || '');
+}
+}
+async function navigateAndWait(url) {
+var expectedMatch = url.match(/asset_id=(\d+)/);
+var expectedAcc = expectedMatch ? expectedMatch[1] : null;
+var navMarker = 'bm_' + Date.now() + '_' + Math.random();
+try { worker.__bmNav = navMarker; } catch (e) {}
+try {
+worker.location.replace(url);
+} catch (e) {
+worker.location.href = url;
+await sleep(200);
+try { worker.location.reload(); } catch (e2) {}
+}
+var t0 = Date.now();
+while (Date.now() - t0 < 30000) {
+if (cardStopped) throw new Error('stopped');
+if (worker.closed) throw new Error('worker closed');
+if (isCrossOrigin()) {
+throw new Error('Cross-origin block: master=' + location.hostname + ', worker target=business.facebook.com. Запусти bookmarklet с business.facebook.com (например с Billing Hub любого аккаунта).');
+}
+try {
+var sameDoc = (worker.__bmNav === navMarker);
+if (!sameDoc && worker.document.readyState === 'complete' &&
+worker.location.href.indexOf('billing_hub') !== -1) {
+break;
+}
+} catch (e) {}
+await sleep(300);
+}
+await sleep(2000);
+if (expectedAcc) {
+var actualUrl = '';
+try { actualUrl = worker.location.href; } catch (e) {}
+if (actualUrl.indexOf('asset_id=' + expectedAcc) === -1) {
+throw new Error('navigation mismatch: ожидался asset_id=' + expectedAcc + ', worker на ' + actualUrl.slice(0, 140));
+}
+}
+}
+function findInputs(d) {
+return {
+name: d.querySelector('input[name="firstName"]') ||
+d.querySelector('input[name="cardholder_name"]') ||
+d.querySelector('input[placeholder*="Name" i]'),
+pan:  d.querySelector('input[name="cardNumber"]') ||
+d.querySelector('input[name="credit_card_number"]') ||
+d.querySelector('input[placeholder*="Card number" i]'),
+exp:  d.querySelector('input[name="expiration"]') ||
+d.querySelector('input[name="expiration_date"]') ||
+d.querySelector('input[placeholder*="MM/YY" i]'),
+cvc:  d.querySelector('input[name="securityCode"]') ||
+d.querySelector('input[name="csc"]') ||
+d.querySelector('input[placeholder*="CVV" i],input[placeholder*="CVC" i]'),
+zip:  d.querySelector('input[name="zip"]') ||
+d.querySelector('input[name="zipCode"]') ||
+d.querySelector('input[name="postalCode"]') ||
+d.querySelector('input[name="postal_code"]') ||
+d.querySelector('input[placeholder*="ZIP" i]') ||
+d.querySelector('input[placeholder*="Postal" i]') ||
+d.querySelector('input[aria-label*="ZIP" i]') ||
+d.querySelector('input[aria-label*="Postal" i]')
+};
+}
+async function attachCard(accId, pan, mmyy, cvc, name, setDefault) {
+await navigateAndWait(billingUrl(accId));
+var d = worker.document;
+var addBtn = await waitFor(function addPaymentMethodBtn() {
+return findByText(d, '[role="button"],button', 'Add payment method') ||
+findByText(d, '[role="button"],button', 'Add payment')        ||
+findByText(d, 'div[role="button"]', 'Add payment');
+}, 25000);
+addBtn.click();
+await waitFor(function modalAppeared() {
+return findInputs(d).pan ||
+d.querySelector('input[name="AdAccountNewCreditCardOption"]') ||
+findByText(d, 'button,[role="button"]', 'Debit or credit card') ||
+findByText(d, '[role="button"],button', 'Next');
+}, 25000);
+var creditBtn = findByText(d, 'button,[role="button"]', 'Debit or credit card');
+if (creditBtn) {
+try { creditBtn.click(); } catch (e) {}
+await sleep(400);
+}
+var radio = d.querySelector('input[name="AdAccountNewCreditCardOption"]');
+if (radio && !radio.checked) {
+try { radio.click(); } catch (e) {}
+await sleep(300);
+}
+if (!findInputs(d).pan) {
+var nextBtn = findByText(d, '[role="button"],button', 'Next');
+if (nextBtn && (!nextBtn.getAttribute || nextBtn.getAttribute('aria-disabled') !== 'true')) {
+nextBtn.click();
+}
+await waitFor(function cardFormAppeared() {
+return findInputs(d).pan;
+}, 20000);
+}
+var inps = findInputs(d);
+if (!inps.pan || !inps.exp || !inps.cvc) {
+throw new Error('inputs not found (name=' + !!inps.name + ' pan=' + !!inps.pan + ' exp=' + !!inps.exp + ' cvc=' + !!inps.cvc + ')');
+}
+if (inps.name) { setInput(inps.name, name); await sleep(100); }
+setInput(inps.pan, pan);  await sleep(100);
+setInput(inps.exp, mmyy); await sleep(100);
+setInput(inps.cvc, cvc);  await sleep(200);
+var zipInp = inps.zip;
+if (!zipInp) {
+var zipStart = Date.now();
+while (Date.now() - zipStart < 2500) {
+zipInp = findInputs(d).zip;
+if (zipInp) break;
+await sleep(200);
+}
+}
+if (zipInp) {
+setInput(zipInp, ADDRESS.zip);
+await sleep(200);
+}
+blurInput(inps.name);
+blurInput(inps.pan);
+blurInput(inps.exp);
+blurInput(inps.cvc);
+blurInput(zipInp);
+try { worker.document.body.focus(); } catch (e) {}
+await sleep(400);
+if (setDefault) {
+var defCb = findSetDefaultCheckbox(d);
+if (defCb && !defCb.checked) {
+try { defCb.click(); } catch (e) {}
+await sleep(200);
+}
+}
+var SAVE_TEXTS = ['Save', 'Save and continue', 'Next', 'Add card', 'Add', 'Confirm', 'Continue', 'Done', 'Submit'];
+var saveBtn = await waitFor(function saveBtnSearch() {
+for (var s = 0; s < SAVE_TEXTS.length; s++) {
+var b = findByTextVisible(d, 'button,[role="button"]', SAVE_TEXTS[s]);
+if (b) {
+if (b.getAttribute && b.getAttribute('aria-disabled') === 'true') continue;
+return b;
+}
+}
+return null;
+}, 15000);
+saveBtn.click();
+var result = await waitFor(function finalResult() {
+var successText = findByTextVisible(d, 'div,h1,h2,h3,span', 'successfully saved') ||
+findByTextVisible(d, 'div,h1,h2,h3,span', 'has been added') ||
+findByTextVisible(d, 'div,h1,h2,h3,span', 'Card successfully');
+if (successText) return { type: 'ok' };
+var errEl = d.querySelector('[role="alert"]');
+if (errEl && errEl.textContent && errEl.textContent.trim().length > 4) {
+return { type: 'error', text: errEl.textContent.trim() };
+}
+if (!findInputs(d).pan && !findByTextVisible(d, 'button,[role="button"]', 'Next')) {
+return { type: 'ok' };
+}
+return null;
+}, 30000, 500);
+if (result.type === 'error') throw new Error('FB: ' + result.text.slice(0, 200));
+await sleep(400);
+var doneBtn = findByTextVisible(d, 'button,[role="button"]', 'Done');
+if (doneBtn) {
+try { doneBtn.click(); } catch (e) {}
+await sleep(500);
+}
+if (setDefault) {
+var last4 = pan.slice(-4);
+await sleep(1500);
+try {
+var st = await ensurePrimary(accId, last4);
+return { ok: true, primary: st };
+} catch (e) {
+return { ok: true, primary: 'err:' + (e.message || e) };
+}
+}
+return { ok: true };
+}
+$('card-stop').onclick = function () {
+cardStopped = true;
+$('card-stop').style.display = 'none';
+$('card-run').disabled = false;
+log('--- stop requested ---', 'muted');
+};
+$('card-run').onclick = async function () {
+var name = $('card-name').value.trim();
+if (!name) { log('Name on card пустое', 'err'); return; }
+var accs = $('card-accs').value.trim().split(/\s+/)
+.map(function (x) { return x.replace(/^act_/, '').trim(); })
+.filter(function (x) { return /^\d{6,}$/.test(x); });
+var cards = $('card-cards').value.trim().split(/\n+/)
+.map(function (x) { return x.trim(); })
+.filter(function (x) { return x.length > 0; });
+if (accs.length !== cards.length) {
+log('Несовпадение: accounts=' + accs.length + ' cards=' + cards.length, 'err');
+return;
+}
+if (!accs.length) { log('пусто', 'err'); return; }
+if (!/business\.facebook\.com/.test(location.hostname)) { log('Привязка карт работает только с business.facebook.com — открываю Billing Hub…', 'warn'); if (confirm('Привязка карт работает с business.facebook.com (worker-вкладка должна быть того же домена). Перейти на Billing Hub первого кабинета? После загрузки снова открой FB Tools → Billing → Attach card.')) { location.href = 'https://business.facebook.com/billing_hub/payment_settings/?placement=ads_manager&asset_id=' + accs[0] + '&payment_account_id_from_jsmodule=' + accs[0] + '&payment_account_id=' + accs[0] + '&entrypoint=ads_ecosystem_navigation_ads_billing_tool_plugin'; } return; }
+var useCurrentMonth = $('card-currmonth').checked;
+var nowMM, nowYY;
+if (useCurrentMonth) {
+var yearsAdd = parseInt($('card-yearsadd').value, 10);
+if (!Number.isFinite(yearsAdd) || yearsAdd < 0) yearsAdd = 2;
+var nowD = new Date();
+nowMM = String(nowD.getMonth() + 1).padStart(2, '0');
+nowYY = String((nowD.getFullYear() + yearsAdd) % 100).padStart(2, '0');
+log('Срок: ' + nowMM + '/' + nowYY + ' (тек. месяц + ' + yearsAdd + ' лет)', 'muted');
+}
+var parsed = [];
+for (var i = 0; i < cards.length; i++) {
+var parts = cards[i].split(/[\-|]/).map(function (x) { return x.trim(); });
+var expected = useCurrentMonth ? 2 : 3;
+if (parts.length !== expected) {
+log('Card #' + (i + 1) + ': нужен формат ' + (useCurrentMonth ? 'PAN-CVC' : 'PAN-MM/YY-CVC'), 'err');
+return;
+}
+var pan = parts[0].replace(/\s/g, '');
+var mmyy, cvc;
+if (useCurrentMonth) {
+mmyy = nowMM + '/' + nowYY;
+cvc = parts[1];
+} else {
+mmyy = parts[1].replace(/\s/g, '');
+cvc = parts[2];
+var mexp = mmyy.match(/^(\d{1,2})\/(\d{2}|\d{4})$/);
+if (!mexp) { log('Card #' + (i + 1) + ': MM/YY должно быть как 05/28', 'err'); return; }
+var mm = mexp[1].length === 1 ? '0' + mexp[1] : mexp[1];
+var yy = mexp[2].length === 4 ? mexp[2].slice(-2) : mexp[2];
+mmyy = mm + '/' + yy;
+}
+if (!/^\d{12,19}$/.test(pan)) { log('Card #' + (i + 1) + ': невалидный PAN', 'err'); return; }
+if (!/^\d{3,4}$/.test(cvc)) { log('Card #' + (i + 1) + ': невалидный CVC', 'err'); return; }
+parsed.push({ pan: pan, mmyy: mmyy, cvc: cvc });
+}
+$('card-run').disabled = true;
+$('card-stop').style.display = 'inline-block';
+cardStopped = false;
+log('--- Cards: ' + accs.length + ' pairs ---', 'muted');
+try {
+await ensureWorker();
+} catch (e) {
+log('Не открылась worker-вкладка: ' + e.message, 'err');
+$('card-run').disabled = false; $('card-stop').style.display = 'none';
+return;
+}
+var setDefault = $('card-setdefault').checked;
+var ok = 0, err = 0;
+for (var j = 0; j < accs.length; j++) {
+if (cardStopped) break;
+var accId = accs[j], c = parsed[j];
+log('[' + (j + 1) + '/' + accs.length + '] act_' + accId + ' ← ****' + c.pan.slice(-4) + ' …');
+try {
+var r = await attachCard(accId, c.pan, c.mmyy, c.cvc, name, setDefault);
+var note = '';
+if (r && r.primary === 'made')     note = ' (made primary)';
+else if (r && r.primary === 'already') note = ' (already primary)';
+else if (r && r.primary && r.primary.indexOf('err:') === 0) note = ' (primary failed: ' + r.primary.slice(4) + ')';
+log('   ✓ OK' + note, 'ok'); ok++;
+} catch (e) {
+log('   ✗ ' + (e.message || e), 'err'); err++;
+}
+await sleep(1500);
+}
+log('--- Done. OK=' + ok + ' ERR=' + err + (cardStopped ? ' (stopped)' : '') + ' ---', 'muted');
+$('card-run').disabled = false;
+$('card-stop').style.display = 'none';
+};
+}
+const defMode=isAds?'accept':'send';
+const TB='flex:1;padding:11px 6px;border:none;background:none;font-weight:600;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;color:#444';
+const m=document.createElement('div');m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2147483647;display:flex;align-items:center;justify-content:center;font-family:Arial,sans-serif';
+m.innerHTML='<div style="background:#fff;color:#111;border-radius:10px;width:640px;max-width:96vw;max-height:94vh;display:flex;flex-direction:column;box-shadow:0 8px 30px rgba(0,0,0,.4);overflow:hidden">'
++'<div style="display:flex;align-items:center;border-bottom:1px solid #e5e7eb;background:#f9fafb">'
++'<button id="fb_tabA" style="'+TB+'">Доступ</button><button id="fb_tabR" style="'+TB+'">Rename</button><button id="fb_tabK" style="'+TB+'">Kill</button><button id="fb_tabB" style="'+TB+'">Billing</button>'
++'<span id="fb_close" style="padding:0 14px;cursor:pointer;font-size:22px;color:#888">&times;</span></div>'
++'<div style="overflow:auto">'
++'<div id="fb_paneA" style="padding:18px"><div style="font-size:13px;margin-bottom:10px"><label style="margin-right:16px;font-weight:600"><input type="radio" name="fb_md" value="send"'+(defMode==='send'?' checked':'')+'> Отправка</label><label style="font-weight:600"><input type="radio" name="fb_md" value="accept"'+(defMode==='accept'?' checked':'')+'> Приём</label></div><div id="fb_bizrow" style="margin-bottom:10px"><div style="font-size:12px;color:#555;margin-bottom:4px">business_id (главный профиль):</div><input id="fb_biz" value="'+biz+'" style="width:100%;box-sizing:border-box;padding:7px;font-family:monospace;font-size:12px;border:1px solid #ccc;border-radius:5px"></div><div style="font-size:12px;color:#555;margin-bottom:4px">ID кабинетов (по одному на строку):</div><textarea id="fb_ids" style="width:100%;height:110px;box-sizing:border-box;font-family:monospace;font-size:11px;border:1px solid #ccc;border-radius:5px"></textarea><div style="margin:8px 0;font-size:12px">Пауза, сек: <input id="fb_delay" value="2" style="width:46px"> &nbsp; Период ожидания, сек: <input id="fb_poll" value="8" style="width:46px"></div><div style="text-align:right"><button id="fb_stop" style="margin-right:8px;padding:7px 14px;border:1px solid #d33;background:#fff;color:#d33;border-radius:5px;cursor:pointer" disabled>Стоп</button><button id="fb_go" style="background:#1877f2;color:#fff;border:none;padding:8px 16px;border-radius:5px;cursor:pointer;font-weight:600">Старт</button></div><div id="fb_status" style="margin-top:10px;font-size:12px;font-weight:600;min-height:16px"></div><div id="fb_log" style="margin-top:6px;max-height:150px;overflow:auto;font-family:monospace;font-size:11px;white-space:pre-wrap;background:#f3f4f6;padding:8px;border-radius:6px"></div></div>'
++'<div id="fb_paneR" style="padding:18px;display:none"><div style="font-size:12px;color:#555;margin-bottom:10px">Токен на странице: '+(pageT?(pageT.slice(0,15)+'... ('+pageT.length+')'):'<b style="color:#c00">не найден</b>')+'</div><label style="display:block;margin-bottom:8px;user-select:none"><input type="checkbox" id="rn_cb" style="vertical-align:middle;margin-right:6px"><span style="vertical-align:middle">использовать свой токен (системный юзер BM)</span></label><input type="text" id="rn_tok" placeholder="EAA..." disabled style="width:100%;padding:8px;box-sizing:border-box;margin-bottom:12px;font-family:monospace;font-size:11px;border:1px solid #ccc;border-radius:4px"><div style="margin-bottom:10px"><button id="rn_load" style="background:#1877f2;color:#fff;border:none;padding:8px 16px;border-radius:5px;cursor:pointer;font-weight:600">Загрузить аккаунты</button> <span id="rn_count" style="font-size:12px;color:#555"></span></div><div id="rn_list" style="max-height:260px;overflow:auto;border:1px solid #ddd;border-radius:6px;margin-bottom:10px"></div><div id="rn_actions" style="display:none;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-bottom:8px"><button id="rn_copyall" style="padding:8px 12px;border:1px solid #1877f2;background:#fff;color:#1877f2;border-radius:4px;cursor:pointer;font-weight:600">Копировать все</button><button id="rn_copy" style="padding:8px 12px;border:1px solid #1877f2;background:#fff;color:#1877f2;border-radius:4px;cursor:pointer;font-weight:600">Копировать выделенные</button><button id="rn_do" style="background:#1877f2;color:#fff;border:none;padding:8px 14px;border-radius:4px;cursor:pointer;font-weight:600">Переименовать &rarr; ID</button></div><div id="rn_status" style="font-size:12px;color:#555;min-height:16px"></div></div>'
++'<div id="fb_paneK" style="padding:18px;display:none"><div class="danger" style="background:#fdecea;border-left:4px solid #c0392b;padding:8px 12px;border-radius:4px;font-size:12px;margin-bottom:10px;color:#7a241b">Удаление необратимо. Kill Account стирает <b>весь</b> кабинет.</div><div id="k_info" style="font-size:12px;color:#555;margin-bottom:10px"></div><label style="display:block;margin-bottom:8px;user-select:none"><input type="checkbox" id="k_cb" style="vertical-align:middle;margin-right:6px"><span style="vertical-align:middle">использовать свой токен</span></label><input type="text" id="k_tok" placeholder="EAA..." disabled style="width:100%;padding:8px;box-sizing:border-box;margin-bottom:12px;font-family:monospace;font-size:11px;border:1px solid #ccc;border-radius:4px"><div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"><button id="k_ads" style="background:#1877f2;color:#fff;border:none;padding:8px 14px;border-radius:5px;cursor:pointer;font-weight:600">Kill Ads (выделенные)</button><button id="k_acct" style="background:#c0392b;color:#fff;border:none;padding:8px 14px;border-radius:5px;cursor:pointer;font-weight:600">Kill Account (весь кабинет)</button></div><div style="font-size:12px;color:#555;margin-bottom:4px">Для Kill Account введи номер кабинета (act):</div><input type="text" id="k_confirm" placeholder="номер кабинета" style="width:100%;padding:8px;box-sizing:border-box;margin-bottom:10px;font-family:monospace;font-size:12px;border:1px solid #ccc;border-radius:4px"><div id="k_status" style="font-size:12px;font-weight:600;min-height:16px;margin-bottom:6px"></div><div id="k_log" style="max-height:150px;overflow:auto;font-family:monospace;font-size:11px;white-space:pre-wrap;background:#f3f4f6;padding:8px;border-radius:6px"></div></div>'
++'<div id="fb_paneB" style="padding:0;display:none"></div>'
++'</div></div>';
+document.body.appendChild(m);
+const Q=s=>m.querySelector(s);
+const mode=()=>m.querySelector('input[name=fb_md]:checked').value;
+const log=t=>{Q('#fb_log').textContent+=t+'\n';Q('#fb_log').scrollTop=1e9};
+const rnStatus=t=>{Q('#rn_status').textContent=t};
+const kLog=t=>{Q('#k_log').textContent+=t+'\n';Q('#k_log').scrollTop=1e9};
+const kStatus=t=>{Q('#k_status').textContent=t};
+const tabs={A:'#fb_tabA',R:'#fb_tabR',K:'#fb_tabK',B:'#fb_tabB'};
+const panes={A:'#fb_paneA',R:'#fb_paneR',K:'#fb_paneK',B:'#fb_paneB'};
+const showTab=t=>{for(const k in panes){Q(panes[k]).style.display=k===t?'block':'none';Q(tabs[k]).style.borderBottomColor=k===t?'#1877f2':'transparent';Q(tabs[k]).style.color=k===t?'#1877f2':'#444'}if(t==='K')kInfo();if(t==='B'&&!billingInited){openBilling(Q('#fb_paneB'));billingInited=true}};
+Q('#fb_tabA').onclick=()=>showTab('A');Q('#fb_tabR').onclick=()=>showTab('R');Q('#fb_tabK').onclick=()=>showTab('K');Q('#fb_tabB').onclick=()=>showTab('B');
+const syncMode=()=>{Q('#fb_bizrow').style.display=mode()==='send'?'block':'none';Q('#fb_go').style.background=mode()==='accept'?'#0a8a0a':'#1877f2'};
+[].forEach.call(m.querySelectorAll('input[name=fb_md]'),el=>el.onchange=syncMode);syncMode();showTab('A');
+Q('#fb_close').onclick=()=>{window.__fbStop=true;m.remove()};
+m.addEventListener('click',e=>{if(e.target===m){window.__fbStop=true;m.remove()}});
+Q('#fb_go').onclick=async()=>{const md=mode();if(md==='send'&&!isBiz){const b=Q('#fb_biz').value.trim();if(confirm('Сейчас открыта страница приёма. Перейти на business.facebook.com для отправки? После загрузки нажми закладку ещё раз.')){location.href='https://business.facebook.com/latest/settings/ad_accounts'+(b?('?business_id='+b):'')}return}if(md==='accept'&&!isAds){if(confirm('Сейчас открыта страница отправки. Перейти на adsmanager.facebook.com для приёма? После загрузки нажми закладку ещё раз.')){location.href='https://adsmanager.facebook.com/'}return}const ids=Q('#fb_ids').value.split(/[\s,]+/).map(s=>s.replace(/^act_/,'').trim()).filter(Boolean);if(!ids.length){log('Вставь список ID');return}const delay=(parseFloat(Q('#fb_delay').value)||2)*1000;const poll=(parseFloat(Q('#fb_poll').value)||8)*1000;window.__fbStop=false;Q('#fb_go').disabled=true;Q('#fb_stop').disabled=false;Q('#fb_stop').onclick=()=>{window.__fbStop=true};if(md==='send'){const b=Q('#fb_biz').value.trim();if(!b){log('Укажи business_id');Q('#fb_go').disabled=false;Q('#fb_stop').disabled=true;return}let i=0,sent=0,dup=0,errs=0;const st=()=>{Q('#fb_status').textContent='Отправлено: '+sent+' | дубли: '+dup+' | ошибки: '+errs+' | осталось: '+(ids.length-i)};st();log('Старт отправки. Кабинетов: '+ids.length);while(i<ids.length){if(window.__fbStop){log('Остановлено.');break}const acc=ids[i];const r=await send(acc,b);if(r.s==='ok'){sent++;i++;log('OK   act_'+acc);st();await sleep(delay)}else if(r.s==='dup'){dup++;i++;log('SKIP act_'+acc+' (уже запрошен)');st()}else if(r.s==='limit'){Q('#fb_status').textContent='Лимит 2 pending — прими во 2-м профиле. Жду... (отправлено '+sent+', осталось '+(ids.length-i)+')';await sleep(poll)}else{errs++;i++;log('FAIL act_'+acc+': '+r.m);st()}}log('Завершено. Отправлено '+sent+', дубли '+dup+', ошибки '+errs+'.');st()}else{const done=new Set();let round=0;log('Старт приёма. Кабинетов: '+ids.length);while(!window.__fbStop){round++;let waiting=0,errs=0;for(const acc of ids){if(window.__fbStop)break;if(done.has(acc))continue;const r=await accept(acc);if(r.s==='ok'){done.add(acc);log('OK   act_'+acc)}else if(r.s==='none'){waiting++}else{errs++;log('FAIL act_'+acc+': '+r.m)}Q('#fb_status').textContent='Принято '+done.size+'/'+ids.length+' | ждёт '+waiting+' | ошибок в круге '+errs+' | круг '+round;await sleep(delay)}if(done.size>=ids.length){log('Все приняты ('+done.size+').');break}if(window.__fbStop){log('Остановлено.');break}Q('#fb_status').textContent='Принято '+done.size+'/'+ids.length+'. Жду новые запросы... (круг '+round+')';await sleep(poll)}}Q('#fb_go').disabled=false;Q('#fb_stop').disabled=true};
+const savedTok=localStorage.getItem('__rename_ads_token')||'';if(savedTok){Q('#rn_cb').checked=true;Q('#rn_tok').disabled=false;Q('#rn_tok').value=savedTok}
+Q('#rn_cb').onchange=()=>{Q('#rn_tok').disabled=!Q('#rn_cb').checked;if(Q('#rn_cb').checked)setTimeout(()=>Q('#rn_tok').focus(),0)};
+const rnRows=()=>[].slice.call(m.querySelectorAll('.rn_row'));
+const rnChecked=()=>rnRows().filter(c=>c.checked).map(c=>rnState.accounts[+c.dataset.i]);
+const renderList=()=>{const accounts=rnState.accounts;const rows=accounts.map((a,i)=>'<label style="display:flex;gap:8px;align-items:center;padding:5px 8px;border-bottom:1px solid #eee;font-size:12px;cursor:pointer"><input type="checkbox" class="rn_row" data-i="'+i+'"'+(a.name!==a.account_id?' checked':'')+'><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(a.name)+'</span><code style="color:#888">'+esc(a.account_id)+'</code></label>').join('');Q('#rn_list').innerHTML='<label style="display:block;font-size:12px;padding:6px 8px;border-bottom:1px solid #ddd;user-select:none;background:#fafafa"><input type="checkbox" id="rn_all" style="vertical-align:middle;margin-right:6px"> выделить все</label>'+rows;Q('#rn_actions').style.display='flex';Q('#rn_count').textContent='Аккаунтов: '+accounts.length;Q('#rn_all').onchange=e=>{rnRows().forEach(c=>c.checked=e.target.checked)}};
+Q('#rn_load').onclick=async()=>{if(!isAdsMgr){if(confirm('Для Rename нужна страница adsmanager.facebook.com/adsmanager/. Перейти? После загрузки нажми закладку снова.')){location.href='https://adsmanager.facebook.com/adsmanager/'}return}let T;const custom=Q('#rn_cb').checked;if(custom){const tk=Q('#rn_tok').value.trim();if(!tk||!/^EAA/.test(tk)){rnStatus('Нужен EAA-токен');return}T=tk;localStorage.setItem('__rename_ads_token',T)}else{T=pageT;localStorage.removeItem('__rename_ads_token');if(!T){rnStatus('На странице не найден EAA-токен');return}}rnState.T=T;rnState.CRED=custom?'omit':'include';rnStatus('Загружаю...');const me=await rnCall('me?fields=id,name');if(me.code!==200){rnStatus('Токен не прошёл /me: '+me.body.slice(0,160));return}let accounts=[],after='';do{const p='me/adaccounts?fields=name,account_id&limit=200'+(after?'&after='+after:'');const r=await rnCall(p);if(r.code!==200){rnStatus('Ошибка аккаунтов: '+r.body.slice(0,160));return}accounts.push.apply(accounts,r.json.data||[]);after=(r.json.paging&&r.json.paging.next&&r.json.paging.cursors)?r.json.paging.cursors.after:''}while(after);if(!accounts.length){rnStatus('Аккаунтов не найдено');return}accounts.sort((a,b)=>String(a.name).localeCompare(String(b.name)));rnState.accounts=accounts;renderList();rnStatus('Загружено '+accounts.length+'. Отметь нужные и жми действие.')};
+Q('#rn_copyall').onclick=async()=>{if(!rnState.accounts.length){rnStatus('Сначала загрузи аккаунты');return}const ok=await copyText(rnState.accounts.map(a=>a.account_id).join('\n'));rnStatus(ok?('Скопировано: '+rnState.accounts.length+' ID (все)'):'Не удалось скопировать')};
+Q('#rn_copy').onclick=async()=>{const sel=rnChecked();if(!sel.length){rnStatus('Ничего не выделено');return}const ok=await copyText(sel.map(a=>a.account_id).join('\n'));rnStatus(ok?('Скопировано: '+sel.length+' ID'):'Не удалось скопировать')};
+Q('#rn_do').onclick=async()=>{const sel0=rnChecked();if(!sel0.length){rnStatus('Ничего не выделено');return}const sel=sel0.filter(a=>a.name!==a.account_id);const already=sel0.length-sel.length;if(!sel.length){rnStatus('Выделенные уже названы по ID');return}if(!confirm('Переименовать '+sel.length+' аккаунтов в их ID?'+(already?(' ('+already+' уже по ID, пропущу)'):'')))return;Q('#rn_do').disabled=true;Q('#rn_copy').disabled=true;let ok=0,fail=0;for(const a of sel){const r=await rnCall('act_'+a.account_id,{method:'POST',payload:{name:a.account_id}});if(r.code===200&&(r.json.success||r.json.id||r.body==='true')){ok++}else{fail++;console.warn('[rename] FAIL '+a.account_id+':',r.code,r.body)}rnStatus('Переименовано '+ok+'/'+sel.length+(fail?(', ошибок '+fail):''));await sleep(700)}rnStatus('Готово: '+ok+'/'+sel.length+(fail?(', ошибок '+fail+' (см. F12)'):'')+'. Имена обновятся после перезагрузки.');Q('#rn_do').disabled=false;Q('#rn_copy').disabled=false};
+const savedK=localStorage.getItem('__kill_ads_token')||'';if(savedK){Q('#k_cb').checked=true;Q('#k_tok').disabled=false;Q('#k_tok').value=savedK}
+Q('#k_cb').onchange=()=>{Q('#k_tok').disabled=!Q('#k_cb').checked;if(Q('#k_cb').checked)setTimeout(()=>Q('#k_tok').focus(),0)};
+const kToken=()=>{const custom=Q('#k_cb').checked;if(custom){const tk=Q('#k_tok').value.trim();if(!tk||!/^EAA/.test(tk)){kStatus('Нужен EAA-токен');return null}localStorage.setItem('__kill_ads_token',tk);return{T:tk,CRED:'omit'}}if(!pageT){kStatus('На странице не найден EAA-токен');return null}localStorage.removeItem('__kill_ads_token');return{T:pageT,CRED:'include'}};
+const kInfo=()=>{const u=new URL(location.href);const acc=u.searchParams.get('act');const sel=(u.searchParams.get('selected_ad_ids')||'').split(',').map(s=>s.trim()).filter(Boolean);Q('#k_info').innerHTML='Кабинет: '+(acc?('act_'+acc):'<b style="color:#c00">нет act= в URL</b>')+'<br>Выделено объявлений: '+sel.length+'<br>Токен на странице: '+(pageT?(pageT.slice(0,15)+'... ('+pageT.length+')'):'<b style="color:#c00">не найден</b>');return{acc:acc,sel:sel}};
+Q('#k_ads').onclick=async()=>{if(!isAdsMgr){if(confirm('Нужна страница adsmanager.facebook.com/adsmanager/. Перейти?')){location.href='https://adsmanager.facebook.com/adsmanager/'}return}const info=kInfo();if(!info.acc){kStatus('Нет act= в URL');return}if(!info.sel.length){kStatus('Не выделены объявления (нет selected_ad_ids)');return}const tk=kToken();if(!tk)return;const call=(p,o)=>graphCall(tk.T,tk.CRED,p,o);kStatus('Старт Kill Ads...');const me=await call('me?fields=id,name');if(me.code!==200){kStatus('Токен не прошёл /me: '+me.body.slice(0,140));return}let r=await call('act_'+info.acc+'/promote_pages?fields=id,name&limit=5');let pid=r.json.data&&r.json.data[0]&&r.json.data[0].id;if(!pid){r=await call('me/accounts?fields=id,name&limit=5');pid=r.json.data&&r.json.data[0]&&r.json.data[0].id}if(!pid){kStatus('Не нашёл Page');return}let ok=0,fail=0;for(const id of info.sel){try{let r=await call('act_'+info.acc+'/adcreatives',{method:'POST',payload:{name:'dummy_for_delete_'+Date.now(),object_story_spec:JSON.stringify({page_id:pid,link_data:{link:'https://www.facebook.com/',message:'tmp'}})}});if(r.code!==200){fail++;kLog('FAIL '+id+' creative: '+r.body.slice(0,120));continue}const fc=r.json.id;r=await call(id,{method:'POST',payload:{creative:JSON.stringify({creative_id:fc}),status:'DELETED'}});if(r.code===200){ok++;kLog('OK '+id)}else{r=await call(id,{method:'POST',payload:{creative:JSON.stringify({creative_id:fc}),status:'ARCHIVED'}});if(r.code===200){const d=await call(id,{method:'DELETE'});if(d.code===200){ok++;kLog('OK '+id+' (arch→del)')}else{fail++;kLog('FAIL '+id+': '+d.body.slice(0,120))}}else{fail++;kLog('FAIL '+id+': '+r.body.slice(0,120))}}}catch(e){fail++;kLog('FAIL '+id+': '+e.message)}kStatus('Удалено '+ok+'/'+info.sel.length+(fail?(', ошибок '+fail):''))}kStatus('Готово: '+ok+'/'+info.sel.length+(fail?(', ошибок '+fail+' (F12)'):''))};
+Q('#k_acct').onclick=async()=>{if(!isAdsMgr){if(confirm('Нужна страница adsmanager.facebook.com/adsmanager/. Перейти?')){location.href='https://adsmanager.facebook.com/adsmanager/'}return}const info=kInfo();if(!info.acc){kStatus('Нет act= в URL');return}if(Q('#k_confirm').value.trim()!==info.acc){kStatus('Введи номер кабинета '+info.acc+' для подтверждения');return}if(!confirm('УДАЛИТЬ ВСЁ в act_'+info.acc+'? Необратимо.'))return;const tk=kToken();if(!tk)return;const call=(p,o)=>graphCall(tk.T,tk.CRED,p,o);kStatus('Старт Kill Account...');const me=await call('me?fields=id,name');if(me.code!==200){kStatus('Токен не прошёл /me: '+me.body.slice(0,140));return}const acc=info.acc;const ES=enc(JSON.stringify(['ACTIVE','PAUSED','CAMPAIGN_PAUSED','ADSET_PAUSED','ARCHIVED','WITH_ISSUES','IN_PROCESS','PENDING_REVIEW','DISAPPROVED','PREAPPROVED','PENDING_BILLING_INFO']));const fetchAll=async(edge)=>{const ids=[];let after='',guard=0;while(guard++<200){const base='act_'+acc+'/'+edge+'?fields=id&limit=200';let path=base+'&effective_status='+ES+(after?'&after='+enc(after):'');let r=await call(path);if(r.code===4)throw new Error('rate limit (code 4) — подожди час');if(r.code!==200){r=await call(base+(after?'&after='+enc(after):''))}if(r.code!==200){kLog('list '+edge+' err: '+r.body.slice(0,100));break}const data=r.json.data||[];for(const d of data)ids.push(d.id);const next=r.json.paging&&r.json.paging.cursors&&r.json.paging.cursors.after;if(!next||data.length===0)break;after=next}return ids};const delEach=async(ids,label)=>{let ok=0,fail=0;for(const id of ids){const r=await call(id,{method:'DELETE'});if(r.code===4)throw new Error('rate limit (code 4) на удалении — подожди час');if(r.code===200||(r.json&&r.json.success))ok++;else{fail++;kLog('del '+label+' '+id+': '+r.body.slice(0,100))}}kLog(label+': удалено '+ok+', ошибок '+fail);return{ok:ok,fail:fail}};try{let totalC=0,round=0;while(round++<6){const ids=await fetchAll('campaigns');kLog('раунд '+round+': кампаний '+ids.length);if(!ids.length)break;const r=await delEach(ids,'campaign');totalC+=r.ok;kStatus('Кампаний удалено '+totalC);if(r.ok===0)break}let totalA=0;{const ids=await fetchAll('adsets');if(ids.length){kLog('осталось адсетов: '+ids.length);totalA=(await delEach(ids,'adset')).ok}}let totalAd=0,swapAd=0;{const ids=await fetchAll('ads');if(ids.length){kLog('осталось объявлений: '+ids.length);let pid=null;for(const id of ids){let r=await call(id,{method:'DELETE'});if(r.code===4)throw new Error('rate limit (code 4) — подожди час');if(r.code===200||(r.json&&r.json.success)){totalAd++;continue}if(pid===null){let pr=await call('act_'+acc+'/promote_pages?fields=id&limit=5');pid=(pr.json.data&&pr.json.data[0]&&pr.json.data[0].id)||'';if(!pid){pr=await call('me/accounts?fields=id&limit=5');pid=(pr.json.data&&pr.json.data[0]&&pr.json.data[0].id)||''}}if(pid){const cr=await call('act_'+acc+'/adcreatives',{method:'POST',payload:{name:'dummy_'+Date.now(),object_story_spec:JSON.stringify({page_id:pid,link_data:{link:'https://www.facebook.com/',message:'tmp'}})}});if(cr.code===200){const fc=cr.json.id;let sr=await call(id,{method:'POST',payload:{creative:JSON.stringify({creative_id:fc}),status:'DELETED'}});if(sr.code===200){swapAd++;continue}sr=await call(id,{method:'POST',payload:{creative:JSON.stringify({creative_id:fc}),status:'ARCHIVED'}});if(sr.code===200){const d=await call(id,{method:'DELETE'});if(d.code===200){swapAd++;continue}}}}kLog('объявление не удалено: '+id)}}}const left=(await fetchAll('campaigns')).length;kLog('ИТОГО: кампаний '+totalC+', адсетов '+totalA+', объявлений '+totalAd+' (+'+swapAd+' подменой). Осталось: '+left);kStatus('Готово. Кампаний '+totalC+', адсетов '+totalA+', объявлений '+totalAd+'(+'+swapAd+'), осталось '+left)}catch(e){kStatus('Ошибка: '+e.message);kLog('ERR: '+e.message)}};
+}catch(e){alert('Ошибка: '+e.message)}})();
+</script>
+
+<script>
+(function(){
+  var src = document.getElementById('src').textContent.trim();
+  document.getElementById('bm').href = src;
+  document.getElementById('srcView').textContent = src;
+})();
+</script>
+
+</body>
+</html>
