@@ -60,7 +60,7 @@
 
 <h3>Вкладка «Billing»</h3>
 <ol>
-  <li>Лучше открывать с <code>business.facebook.com</code> (привязка карт открывает worker-вкладку Billing Hub — нужен тот же origin).</li>
+  <li>Работает там, где открыт твой Billing Hub — <code>adsmanager.facebook.com</code> или <code>business.facebook.com</code> (worker-вкладка открывается на том же домене).</li>
   <li><b>Set address</b>: список Account IDs → массово ставит адрес/валюту/таймзону (US/DE/Wilmington/19801, USD, Europe/Kiev).</li>
   <li><b>Attach card</b>: Account IDs ↔ Cards построчно, опц. «сделать карту основной».</li>
 </ol>
@@ -248,7 +248,7 @@ var b = $('body');
 b.style.display = (b.style.display === 'none') ? '' : 'none';
 };
 $('t-addr').onclick = function () { $('t-addr').classList.add('active'); $('t-card').classList.remove('active'); $('tab-addr').classList.add('active'); $('tab-card').classList.remove('active'); };
-$('t-card').onclick = function () { $('t-card').classList.add('active'); $('t-addr').classList.remove('active'); $('tab-card').classList.add('active'); $('tab-addr').classList.remove('active'); if (!/business\.facebook\.com/.test(location.hostname)) { if (confirm('Привязка карт работает с business.facebook.com (БМ). Перейти на Billing Hub? После загрузки снова открой FB Tools → Billing → Attach card.')) { location.href = 'https://business.facebook.com/billing_hub/payment_settings/?placement=ads_manager&entrypoint=ads_ecosystem_navigation_ads_billing_tool_plugin'; } } };
+$('t-card').onclick = function () { $('t-card').classList.add('active'); $('t-addr').classList.remove('active'); $('tab-card').classList.add('active'); $('tab-addr').classList.remove('active'); };
 function buildAddressBody(accId) {
 var variables = {
 input: {
@@ -437,7 +437,9 @@ $('addr-stop').style.display = 'none';
 var worker = null;
 var cardStopped = false;
 function billingUrl(accId) {
-return 'https://business.facebook.com/billing_hub/payment_settings/' +
+var mm = location.pathname.match(/^(.*\/)billing_hub\//);
+var prefix = mm ? mm[1] : (location.hostname.indexOf('adsmanager') >= 0 ? '/adsmanager/' : '/');
+return location.origin + prefix + 'billing_hub/payment_settings/' +
 '?placement=ads_manager' +
 '&asset_id=' + accId +
 '&payment_account_id_from_jsmodule=' + accId +
@@ -559,7 +561,7 @@ while (Date.now() - t0 < 30000) {
 if (cardStopped) throw new Error('stopped');
 if (worker.closed) throw new Error('worker closed');
 if (isCrossOrigin()) {
-throw new Error('Cross-origin block: master=' + location.hostname + ', worker target=business.facebook.com. Запусти bookmarklet с business.facebook.com (например с Billing Hub любого аккаунта).');
+throw new Error('Cross-origin block: master=' + location.hostname + '. Открой Billing Hub (adsmanager.facebook.com или business.facebook.com) и запусти FB Tools с той же вкладки.');
 }
 try {
 var sameDoc = (worker.__bmNav === navMarker);
@@ -737,7 +739,6 @@ log('Несовпадение: accounts=' + accs.length + ' cards=' + cards.leng
 return;
 }
 if (!accs.length) { log('пусто', 'err'); return; }
-if (!/business\.facebook\.com/.test(location.hostname)) { log('Привязка карт работает только с business.facebook.com — открываю Billing Hub…', 'warn'); if (confirm('Привязка карт работает с business.facebook.com (worker-вкладка должна быть того же домена). Перейти на Billing Hub первого кабинета? После загрузки снова открой FB Tools → Billing → Attach card.')) { location.href = 'https://business.facebook.com/billing_hub/payment_settings/?placement=ads_manager&asset_id=' + accs[0] + '&payment_account_id_from_jsmodule=' + accs[0] + '&payment_account_id=' + accs[0] + '&entrypoint=ads_ecosystem_navigation_ads_billing_tool_plugin'; } return; }
 var useCurrentMonth = $('card-currmonth').checked;
 var nowMM, nowYY;
 if (useCurrentMonth) {
