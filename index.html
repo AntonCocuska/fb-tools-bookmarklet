@@ -62,7 +62,7 @@
 <h3>Вкладка «Billing»</h3>
 <ol>
   <li>Работает там, где открыт твой Billing Hub — <code>adsmanager.facebook.com</code> или <code>business.facebook.com</code> (worker-вкладка открывается на том же домене).</li>
-  <li><b>Set address</b>: список Account IDs → массово ставит адрес/валюту/таймзону (US/DE/Wilmington/19801, USD, Europe/Kiev).</li>
+  <li><b>Set address</b>: список Account IDs → массово ставит адрес/валюту/таймзону. Адрес на выбор: <b>Manchester, NH 03104</b> (2238 Elm St, как в лидинге; по умолчанию) или Wilmington, DE 19801. Часовой пояс: Europe/Kiev (по умолчанию), America/New_York, Europe/Moscow. Валюта USD. Блок «Будет записано» показывает, что уйдёт; выбор запоминается в браузере.</li>
   <li><b>Attach card</b>: Account IDs ↔ Cards построчно, опц. «сделать карту основной».</li>
 </ol>
 
@@ -240,13 +240,14 @@ alert('Не нашёл fb_dtsg / __user.\n' +
 '__user  = ' + (USER_ID ? 'OK' : 'NO'));
 return;
 }
-var ADDRESS = {
-country_code: 'US', state: 'DE',
-city: 'Wilmington', zip: '19801',
-street1: '', street2: ''
-};
+var ADDRESSES = [
+{key: 'nh', label: 'Manchester, NH 03104 (US)', country_code: 'US', state: 'NH', city: 'Manchester', zip: '03104', street1: '2238 Elm St', street2: ''},
+{key: 'de', label: 'Wilmington, DE 19801 (US)', country_code: 'US', state: 'DE', city: 'Wilmington', zip: '19801', street1: '', street2: ''}
+];
+var TIMEZONES = ['Europe/Kiev', 'America/New_York', 'Europe/Moscow'];
+var ADDRESS = ADDRESSES[0];
 var CURRENCY = 'USD';
-var TIMEZONE = 'Europe/Kiev';
+var TIMEZONE = TIMEZONES[0];
 var DOC_UPDATE_ACCOUNT      = '33020210320959428';
 var DOC_PAYMENT_METHODS_LIST = '26414517794887295';
 var DOC_MAKE_PRIMARY        = '24268156329457050';
@@ -272,6 +273,7 @@ idoc.write([
 '.tab.active{display:block}',
 '.addr{background:#f0f2f5;border-radius:6px;padding:8px 10px;margin:0 0 10px;font-family:Consolas,Menlo,monospace;font-size:12px;line-height:1.6;color:#1c1e21}',
 'label{display:block;font-weight:600;margin:8px 0 4px;font-size:12px;color:#1c1e21}',
+'select{width:100%;font-size:12px;border:1px solid #dadde1;border-radius:6px;padding:6px 8px;background:#fff;color:#1c1e21}',
 'textarea,input[type=text]{width:100%;font-family:Consolas,Menlo,monospace;font-size:12px;border:1px solid #dadde1;border-radius:6px;padding:6px 8px;resize:vertical;background:#fff;color:#1c1e21}',
 'textarea{height:140px}',
 '.cols{display:flex;gap:8px}',
@@ -295,7 +297,8 @@ idoc.write([
 '      <button id="t-card">2. Attach card</button>',
 '    </div>',
 '    <div id="tab-addr" class="tab active">',
-'      <div class="addr"><b>Адрес:</b><br>country=US, state=DE<br>city=Wilmington, zip=19801<br>currency=USD, timezone=Europe/Kiev</div>',
+'      <div class="cols"><div><label>Адрес</label><select id="addr-sel"></select></div><div><label>Часовой пояс</label><select id="tz-sel"></select></div></div>',
+'      <div class="addr" id="addr-preview"></div>',
 '      <label>Account IDs (по строке, с act_ или без)</label>',
 '      <textarea id="addr-accs" placeholder="1133545425604191"></textarea>',
 '      <button id="addr-run" class="run">Run address</button>',
@@ -474,6 +477,22 @@ throw new Error('make primary: ' + (er.summary || er.description || er.message |
 }
 return 'made';
 }
+(function initAddrSelects() {
+var sa = $('addr-sel'), st = $('tz-sel');
+var savedA = '', savedT = '';
+try { savedA = localStorage.getItem('__fb_billing_addr') || ''; savedT = localStorage.getItem('__fb_billing_tz') || ''; } catch (e) {}
+ADDRESSES.forEach(function (a) { var o = idoc.createElement('option'); o.value = a.key; o.textContent = a.label; sa.appendChild(o); });
+TIMEZONES.forEach(function (t) { var o = idoc.createElement('option'); o.value = t; o.textContent = t; st.appendChild(o); });
+if (ADDRESSES.some(function (a) { return a.key === savedA; })) sa.value = savedA;
+if (TIMEZONES.indexOf(savedT) >= 0) st.value = savedT;
+function apply() {
+ADDRESS = ADDRESSES.filter(function (a) { return a.key === sa.value; })[0] || ADDRESSES[0];
+TIMEZONE = st.value || TIMEZONES[0];
+try { localStorage.setItem('__fb_billing_addr', ADDRESS.key); localStorage.setItem('__fb_billing_tz', TIMEZONE); } catch (e) {}
+$('addr-preview').innerHTML = '<b>Будет записано:</b><br>country=' + ADDRESS.country_code + ', state=' + ADDRESS.state + '<br>city=' + ADDRESS.city + ', zip=' + ADDRESS.zip + (ADDRESS.street1 ? ', street=' + ADDRESS.street1 : '') + '<br>currency=' + CURRENCY + ', timezone=' + TIMEZONE;
+}
+sa.onchange = apply; st.onchange = apply; apply();
+})();
 var addrStopped = false;
 $('addr-stop').onclick = function () {
 addrStopped = true;
@@ -492,6 +511,7 @@ $('addr-run').disabled = true;
 $('addr-stop').style.display = 'inline-block';
 addrStopped = false;
 log('--- Address: ' + ids.length + ' accounts ---', 'muted');
+log('Адрес: ' + ADDRESS.label + (ADDRESS.street1 ? ' (' + ADDRESS.street1 + ')' : '') + ' · tz ' + TIMEZONE + ' · ' + CURRENCY, 'muted');
 var ok = 0, err = 0;
 for (var i = 0; i < ids.length; i++) {
 if (addrStopped) break;
