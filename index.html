@@ -76,6 +76,7 @@
   <li>Работает там, где открыт твой Billing Hub — <code>adsmanager.facebook.com</code> или <code>business.facebook.com</code> (worker-вкладка открывается на том же домене).</li>
   <li><b>Set address</b>: список Account IDs → массово ставит адрес/валюту/таймзону. Адрес на выбор: <b>Manchester, NH 03104</b> (2238 Elm St, как в лидинге; по умолчанию) или Wilmington, DE 19801. Часовой пояс: Europe/Kiev (по умолчанию), America/New_York, Europe/Moscow. Валюта USD. Блок «Будет записано» показывает, что уйдёт; выбор запоминается в браузере.</li>
   <li><b>Attach card</b>: Account IDs ↔ Cards построчно, опц. «сделать карту основной».</li>
+  <li><b>Порог</b>: массово ставит порог списания (billing threshold). Сумма в валюте кабинета, <b>min</b> / <b>max</b> — границы FB для кабинета; свой порог для кабинета — строкой <code>ID сумма</code>. «Проверить текущие» только читает порог, min/max и валюту. Сумма вне границ — кабинет пропускается с ошибкой.</li>
 </ol>
 
 <h3>Вкладка «Каталог»</h3>
@@ -428,6 +429,8 @@ var TIMEZONE = TIMEZONES[0];
 var DOC_UPDATE_ACCOUNT      = '33020210320959428';
 var DOC_PAYMENT_METHODS_LIST = '26414517794887295';
 var DOC_MAKE_PRIMARY        = '24268156329457050';
+var DOC_THRESHOLD_QUERY     = '25222805530641024';
+var DOC_THRESHOLD_UPDATE    = '24996397986634616';
 var host=document.createElement('iframe');host.id='fb-bm-host';host.style.cssText='width:100%;height:700px;border:0;display:block;background:#f0f2f5';mount.appendChild(host);
 var idoc = host.contentDocument;
 idoc.open();
@@ -472,6 +475,7 @@ idoc.write([
 '    <div class="tabs">',
 '      <button id="t-addr" class="active">1. Set address</button>',
 '      <button id="t-card">2. Attach card</button>',
+'      <button id="t-thr">3. Порог</button>',
 '    </div>',
 '    <div id="tab-addr" class="tab active">',
 '      <div class="cols"><div><label>Адрес</label><select id="addr-sel"></select></div><div><label>Часовой пояс</label><select id="tz-sel"></select></div></div>',
@@ -494,6 +498,15 @@ idoc.write([
 '      <button id="card-run" class="run">Run cards</button>',
 '      <button id="card-stop" class="stop" style="display:none">Stop</button>',
 '    </div>',
+'    <div id="tab-thr" class="tab">',
+'      <div class="cols"><div><label>Порог списания (в валюте кабинета)</label><input type="text" id="thr-amount" placeholder="2 или min / max"></div></div>',
+'      <div class="muted" style="font-size:11px;margin-top:4px">Число, <b>min</b> или <b>max</b> — границы FB для кабинета. Можно задать свой порог в строке: <code>ID сумма</code>. Сумма вне границ FB — кабинет пропускается.</div>',
+'      <label>Account IDs (по строке, с act_ или без)</label>',
+'      <textarea id="thr-accs" placeholder="1133545425604191&#10;1133545425604192 50"></textarea>',
+'      <button id="thr-check" class="run">Проверить текущие</button>',
+'      <button id="thr-run" class="run" style="margin-left:6px">Set threshold</button>',
+'      <button id="thr-stop" class="stop" style="display:none">Stop</button>',
+'    </div>',
 '    <div class="log" id="log">Готов.</div>',
 '  </div>',
 '</div>',
@@ -509,13 +522,16 @@ span.textContent = msg + '\n';
 $log.appendChild(span);
 $log.scrollTop = $log.scrollHeight;
 }
-$('btn-close').onclick = function () { cardStopped = true; addrStopped = true; if (worker && !worker.closed) { try { worker.close(); } catch (e) {} } host.remove(); billingInited = false; };
+$('btn-close').onclick = function () { cardStopped = true; addrStopped = true; thrStopped = true; if (worker && !worker.closed) { try { worker.close(); } catch (e) {} } host.remove(); billingInited = false; };
 $('btn-min').onclick = function () {
 var b = $('body');
 b.style.display = (b.style.display === 'none') ? '' : 'none';
 };
-$('t-addr').onclick = function () { $('t-addr').classList.add('active'); $('t-card').classList.remove('active'); $('tab-addr').classList.add('active'); $('tab-card').classList.remove('active'); };
-$('t-card').onclick = function () { $('t-card').classList.add('active'); $('t-addr').classList.remove('active'); $('tab-card').classList.add('active'); $('tab-addr').classList.remove('active'); };
+['addr', 'card', 'thr'].forEach(function (k) {
+$('t-' + k).onclick = function () {
+['addr', 'card', 'thr'].forEach(function (j) { $('t-' + j).classList.toggle('active', j === k); $('tab-' + j).classList.toggle('active', j === k); });
+};
+});
 function buildAddressBody(accId) {
 var variables = {
 input: {
@@ -717,6 +733,125 @@ await new Promise(function (r) { setTimeout(r, 400); });
 log('--- Done. OK=' + ok + ' ERR=' + err + (addrStopped ? ' (stopped)' : '') + ' ---', 'muted');
 $('addr-run').disabled = false;
 $('addr-stop').style.display = 'none';
+};
+var ZERO_DEC_CURRENCIES = ['JPY', 'KRW', 'VND', 'CLP', 'COP', 'CRC', 'HUF', 'ISK', 'IDR', 'PYG', 'TWD'];
+function thrOffset(cur) { return ZERO_DEC_CURRENCIES.indexOf(cur) >= 0 ? 1 : 100; }
+function thrFmt(o) {
+if (!o) return '—';
+if (o.formatted_amount) return o.formatted_amount;
+return (Number(o.amount_with_offset) / thrOffset(o.currency)) + ' ' + o.currency;
+}
+function thrErr(r) {
+if (r && r.errors && r.errors[0]) { var e = r.errors[0]; return e.summary || e.description || e.message || JSON.stringify(e).slice(0, 200); }
+if (r && r._raw !== undefined) return r._status + ' — ' + String(r._raw).slice(0, 200);
+return 'пустой ответ';
+}
+async function thrInfo(accId) {
+var r = await graphqlPost('BillingManageDateThresholdScreenQuery', DOC_THRESHOLD_QUERY, { paymentAccountID: accId });
+var a = r && r.data && r.data.ad_account;
+if (!a) throw new Error(thrErr(r));
+var off = thrOffset(a.currency);
+return {
+currency: a.currency,
+cur: a.billing_threshold_currency_amount,
+req: a.requested_billing_threshold,
+min: a.min_billing_threshold_currency_amount ? Number(a.min_billing_threshold_currency_amount.amount_with_offset) / off : null,
+max: a.max_billing_threshold_currency_amount ? Number(a.max_billing_threshold_currency_amount.amount_with_offset) / off : null
+};
+}
+function thrParse() {
+var rows = $('thr-accs').value.split('\n'), out = [];
+for (var i = 0; i < rows.length; i++) {
+var p = rows[i].trim().split(/[\s,;]+/).filter(Boolean);
+if (!p.length) continue;
+var id = p[0].replace(/^act_/, '');
+if (!/^\d{6,}$/.test(id)) { log('пропуск строки: ' + rows[i].trim(), 'warn'); continue; }
+out.push({ id: id, amount: p[1] || '' });
+}
+return out;
+}
+var thrStopped = false;
+(function () {
+var saved = '';
+try { saved = localStorage.getItem('__fb_billing_thr') || ''; } catch (e) {}
+$('thr-amount').value = saved;
+$('thr-amount').onchange = function () { try { localStorage.setItem('__fb_billing_thr', $('thr-amount').value.trim()); } catch (e) {} };
+})();
+function thrBusy(on) {
+$('thr-run').disabled = on;
+$('thr-check').disabled = on;
+$('thr-stop').style.display = on ? 'inline-block' : 'none';
+if (on) thrStopped = false;
+}
+$('thr-stop').onclick = function () {
+thrStopped = true;
+log('--- stop requested ---', 'muted');
+};
+$('thr-check').onclick = async function () {
+var list = thrParse();
+if (!list.length) { log('нет валидных ID', 'err'); return; }
+thrBusy(true);
+log('--- Порог: проверка ' + list.length + ' accounts ---', 'muted');
+for (var i = 0; i < list.length; i++) {
+if (thrStopped) break;
+try {
+var t = await thrInfo(list[i].id);
+log('[' + (i + 1) + '/' + list.length + '] ' + list[i].id + ' · порог ' + thrFmt(t.cur) + (t.req ? ' (запрошен ' + thrFmt(t.req) + ')' : '') + ' · min ' + t.min + ' · max ' + t.max + ' ' + t.currency, 'ok');
+} catch (e) {
+log('[' + (i + 1) + '/' + list.length + '] ' + list[i].id + ' ✗ ' + (e.message || e), 'err');
+}
+await sleep(300);
+}
+log('--- Проверка завершена ---', 'muted');
+thrBusy(false);
+};
+$('thr-run').onclick = async function () {
+var list = thrParse();
+if (!list.length) { log('нет валидных ID', 'err'); return; }
+var def = $('thr-amount').value.trim().replace(',', '.');
+if (!def && list.some(function (x) { return !x.amount; })) { log('укажи порог (или сумму в каждой строке)', 'err'); return; }
+try { localStorage.setItem('__fb_billing_thr', def); } catch (e) {}
+thrBusy(true);
+log('--- Порог: ' + list.length + ' accounts, по умолчанию ' + (def || '—') + ' ---', 'muted');
+var ok = 0, err = 0;
+for (var i = 0; i < list.length; i++) {
+if (thrStopped) break;
+var id = list[i].id, want = (list[i].amount || def).replace(',', '.').toLowerCase();
+var pre = '[' + (i + 1) + '/' + list.length + '] ' + id;
+try {
+var t = await thrInfo(id);
+var amt = want === 'min' ? t.min : want === 'max' ? t.max : Number(want);
+if (!isFinite(amt) || amt <= 0) throw new Error('неверная сумма: ' + want);
+if ((t.min !== null && amt < t.min) || (t.max !== null && amt > t.max)) throw new Error(amt + ' ' + t.currency + ' вне границ FB: min ' + t.min + ', max ' + t.max);
+var r = await graphqlPost('useBillingUpdateDateThreshold_T_Mutation', DOC_THRESHOLD_UPDATE, {
+input: {
+billable_account_payment_legacy_account_id: id,
+requested_billing_threshold: { amount: String(amt), currency: t.currency },
+upl_logging_data: {
+billing_notification_id: '', context: 'billingspendlimits',
+entry_point: 'ads_manager', external_flow_id: 'bm_' + Date.now(),
+target_name: 'useBillingUpdateDateThreshold_T_Mutation',
+user_session_id: 'bm_' + Date.now(),
+wizard_config_name: 'MANAGE_BILLING_DATE_THRESHOLD',
+wizard_name: 'MANAGE_BILLING_DATE_THRESHOLD',
+wizard_screen_name: 'manage_date_threshold_state_display',
+wizard_session_id: 'bm_wizard_' + Date.now()
+},
+actor_id: USER_ID,
+client_mutation_id: String(Date.now() % 100000)
+}
+});
+var acc = r && r.data && r.data.billable_account_requested_billing_threshold && r.data.billable_account_requested_billing_threshold.billable_account;
+if (!acc || (r.errors && r.errors[0])) throw new Error(thrErr(r));
+log(pre + ' ✓ ' + thrFmt(t.cur) + ' → ' + thrFmt(acc.billing_threshold_currency_amount) + (acc.requested_billing_threshold ? ' (запрошен ' + thrFmt(acc.requested_billing_threshold) + ')' : ''), 'ok');
+ok++;
+} catch (e) {
+log(pre + ' ✗ ' + (e.message || e), 'err'); err++;
+}
+await sleep(400);
+}
+log('--- Done. OK=' + ok + ' ERR=' + err + (thrStopped ? ' (stopped)' : '') + ' ---', 'muted');
+thrBusy(false);
 };
 var worker = null;
 var cardStopped = false;
